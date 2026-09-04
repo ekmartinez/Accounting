@@ -2,7 +2,7 @@
 
 Solving Accounting exercises with Python, using Jupyter Notebooks.
 
-![Book Cover](/Misc/book_cover.png)
+![Book Cover](/Misc/book_cover.jpg)
 
 
 ## Table of Contents
