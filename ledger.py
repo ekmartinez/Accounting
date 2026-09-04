@@ -12,7 +12,7 @@ class Ledger:
             {"date": ..., "account": ..., "debit": 0, "credit": 0}
         'description' is an optional string explaining the transaction.
         The entry must balance (within rounding tolerance) or it's rejected.
-        Returns the auto-assigned transaction id.
+        Prints and returns the auto-assigned transaction id.
         """
         required_keys = {"date", "account", "debit", "credit"}
         for line in lines:
@@ -35,27 +35,12 @@ class Ledger:
 
         self.entries.extend(lines)
         self._next_id += 1
+
+        desc_note = f" — {description}" if description else ""
+        print(f"Saved transaction id {txn_id}{desc_note}")
+
         return txn_id
-
-    def print_ledger(self):
-        """Print all journal entries in a readable, aligned format."""
-        if not self.entries:
-            print("No entries recorded yet.")
-            return
-
-        print(f"{'ID':<5}{'Date':<12}{'Account':<25}{'Debit':>10}{'Credit':>10}")
-        print("-" * 62)
-
-        last_description = None
-        for e in self.entries:
-            debit = e["debit"] if e["debit"] else ""
-            credit = e["credit"] if e["credit"] else ""
-            print(f"{e['txn_id']:<5}{str(e['date']):<12}{e['account']:<25}{str(debit):>10}{str(credit):>10}")
-
-            if e["description"] and e["description"] != last_description:
-                print(f"      ({e['description']})")
-            last_description = e["description"]
-
+    
     def print_transaction(self, txn_id):
         """Print only the lines belonging to a single transaction id."""
         lines = [e for e in self.entries if e["txn_id"] == txn_id]
