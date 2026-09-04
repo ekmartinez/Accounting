@@ -40,6 +40,7 @@ class Ledger:
         print(f"Saved transaction id {txn_id}{desc_note}")
 
         return txn_id
+
     def print_transaction(self, txn_id=None):
         """
         Print journal entries.
