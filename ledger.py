@@ -40,23 +40,48 @@ class Ledger:
         print(f"Saved transaction id {txn_id}{desc_note}")
 
         return txn_id
-    
-    def print_transaction(self, txn_id):
-        """Print only the lines belonging to a single transaction id."""
-        lines = [e for e in self.entries if e["txn_id"] == txn_id]
-        if not lines:
-            print(f"No transaction found with id {txn_id}.")
+    def print_transaction(self, txn_id=None):
+        """
+        Print journal entries.
+        If txn_id is given, prints only that transaction.
+        If txn_id is omitted, prints the entire ledger.
+        """
+        if not self.entries:
+            print("No entries recorded yet.")
             return
 
-        print(f"{'Date':<12}{'Account':<25}{'Debit':>10}{'Credit':>10}")
-        print("-" * 57)
+        if txn_id is None:
+            lines = self.entries
+            show_id_column = True
+        else:
+            lines = [e for e in self.entries if e["txn_id"] == txn_id]
+            if not lines:
+                print(f"No transaction found with id {txn_id}.")
+                return
+            show_id_column = False
+
+        if show_id_column:
+            print(f"{'ID':<5}{'Date':<12}{'Account':<25}{'Debit':>10}{'Credit':>10}")
+            print("-" * 62)
+        else:
+            print(f"{'Date':<12}{'Account':<25}{'Debit':>10}{'Credit':>10}")
+            print("-" * 57)
+
+        last_description = None
         for e in lines:
             debit = e["debit"] if e["debit"] else ""
             credit = e["credit"] if e["credit"] else ""
-            print(f"{str(e['date']):<12}{e['account']:<25}{str(debit):>10}{str(credit):>10}")
-        if lines[0]["description"]:
-            print(f"    ({lines[0]['description']})")
 
+            if show_id_column:
+                print(f"{e['txn_id']:<5}{str(e['date']):<12}{e['account']:<25}{str(debit):>10}{str(credit):>10}")
+            else:
+                print(f"{str(e['date']):<12}{e['account']:<25}{str(debit):>10}{str(credit):>10}")
+
+            if e["description"] and e["description"] != last_description:
+                indent = "      " if show_id_column else "    "
+                print(f"{indent}({e['description']})")
+            last_description = e["description"]    
+    
 """
 Usage:
 
@@ -79,5 +104,7 @@ ledger.add_entry(
     description="Purchased equipment, partial cash and note",
 )
 
-ledger.print_transaction(id1)
+ledger.print_transaction()      # prints the whole ledger, with ID column
+ledger.print_transaction(3)     # prints just transaction 3, no ID column (redundant when there's only one)
+
 """
