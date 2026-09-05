@@ -100,7 +100,7 @@ class Ledger:
                 indent = "      " if show_id_column else "    "
                 print(f"{indent}({description})")
 
-   def reset(self):
+    def reset(self):
         """Clear all entries and restart the transaction id counter from 1."""
         self.entries = []
         self._next_id = 1
