@@ -41,6 +41,17 @@ class Ledger:
 
         return txn_id
 
+    def delete_transaction(self, txn_id):
+        """Remove all lines belonging to a given transaction id."""
+        before = len(self.entries)
+        self.entries = [e for e in self.entries if e["txn_id"] != txn_id]
+        removed = before - len(self.entries)
+
+        if removed == 0:
+            print(f"No transaction found with id {txn_id}.")
+        else:
+            print(f"Deleted transaction id {txn_id} ({removed} line(s) removed).")
+
     def print_transaction(self, txn_id=None):
         """
         Print journal entries.
@@ -68,7 +79,7 @@ class Ledger:
             print(f"{'Date':<12}{'Account':<25}{'Debit':>10}{'Credit':>10}")
             print("-" * 57)
 
-        last_description = None
+        last_txn_id = None
         for e in lines:
             debit = e["debit"] if e["debit"] else ""
             credit = e["credit"] if e["credit"] else ""
@@ -78,34 +89,7 @@ class Ledger:
             else:
                 print(f"{str(e['date']):<12}{e['account']:<25}{str(debit):>10}{str(credit):>10}")
 
-            if e["description"] and e["description"] != last_description:
+            if e["description"] and e["txn_id"] != last_txn_id:
                 indent = "      " if show_id_column else "    "
                 print(f"{indent}({e['description']})")
-            last_description = e["description"]    
-    
-"""
-Usage:
-
-ledger = Ledger()
-
-id1 = ledger.add_entry(
-    [
-        {"date": "2024-01-01", "account": "Cash", "debit": 5000, "credit": 0},
-        {"date": "2024-01-01", "account": "Common Stock", "debit": 0, "credit": 5000},
-    ],
-    description="Issued common stock for cash",
-)
-
-ledger.add_entry(
-    [
-        {"date": "2024-01-05", "account": "Equipment", "debit": 8000, "credit": 0},
-        {"date": "2024-01-05", "account": "Cash", "debit": 0, "credit": 2000},
-        {"date": "2024-01-05", "account": "Notes Payable", "debit": 0, "credit": 6000},
-    ],
-    description="Purchased equipment, partial cash and note",
-)
-
-ledger.print_transaction()      # prints the whole ledger, with ID column
-ledger.print_transaction(3)     # prints just transaction 3, no ID column (redundant when there's only one)
-
-"""
+            last_txn_id = e["txn_id"]
