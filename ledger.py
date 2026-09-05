@@ -51,12 +51,13 @@ class Ledger:
             print(f"No transaction found with id {txn_id}.")
         else:
             print(f"Deleted transaction id {txn_id} ({removed} line(s) removed).")
-
+            
     def print_transaction(self, txn_id=None):
         """
         Print journal entries.
         If txn_id is given, prints only that transaction.
-        If txn_id is omitted, prints the entire ledger.
+        If txn_id is omitted, prints the entire ledger, grouped by transaction,
+        with each transaction's description printed once at the end of its lines.
         """
         if not self.entries:
             print("No entries recorded yet.")
@@ -79,17 +80,61 @@ class Ledger:
             print(f"{'Date':<12}{'Account':<25}{'Debit':>10}{'Credit':>10}")
             print("-" * 57)
 
-        last_txn_id = None
+        # Group lines by txn_id while preserving order of first appearance
+        grouped = {}
         for e in lines:
-            debit = e["debit"] if e["debit"] else ""
-            credit = e["credit"] if e["credit"] else ""
+            grouped.setdefault(e["txn_id"], []).append(e)
 
-            if show_id_column:
-                print(f"{e['txn_id']:<5}{str(e['date']):<12}{e['account']:<25}{str(debit):>10}{str(credit):>10}")
-            else:
-                print(f"{str(e['date']):<12}{e['account']:<25}{str(debit):>10}{str(credit):>10}")
+        for group in grouped.values():
+            for e in group:
+                debit = e["debit"] if e["debit"] else ""
+                credit = e["credit"] if e["credit"] else ""
 
-            if e["description"] and e["txn_id"] != last_txn_id:
+                if show_id_column:
+                    print(f"{e['txn_id']:<5}{str(e['date']):<12}{e['account']:<25}{str(debit):>10}{str(credit):>10}")
+                else:
+                    print(f"{str(e['date']):<12}{e['account']:<25}{str(debit):>10}{str(credit):>10}")
+
+            description = group[0]["description"]
+            if description:
                 indent = "      " if show_id_column else "    "
-                print(f"{indent}({e['description']})")
-            last_txn_id = e["txn_id"]
+                print(f"{indent}({description})")
+
+   def reset(self):
+        """Clear all entries and restart the transaction id counter from 1."""
+        self.entries = []
+        self._next_id = 1
+        print("Ledger has been reset.") 
+
+"""
+Usage:
+
+    # Create a new ledger (do this once per exercise)
+    ledger = Ledger()
+
+    # Add a journal entry — pass a list of line dicts (2 or more lines).
+    # Each line needs: date, account, debit, credit.
+    # 'description' is optional and applies to the whole entry.
+    # The entry is rejected if debits don't equal credits.
+    # Returns the auto-assigned transaction id, and prints it too.
+    txn_id = ledger.add_entry(
+        [
+            {"date": "2024-05-01", "account": "Cash", "debit": 4000, "credit": 0},
+            {"date": "2024-05-01", "account": "Common Stock", "debit": 0, "credit": 4000},
+        ],
+        description="Issued common stock for cash",
+    )
+
+    # Print the full ledger (all transactions, grouped, with an ID column)
+    ledger.print_transaction()
+
+    # Print just one transaction by its id (no ID column, since it's implied)
+    ledger.print_transaction(txn_id)
+
+    # Delete a transaction by id (e.g., to fix a duplicate or mistake)
+    ledger.delete_transaction(txn_id)
+
+    # Reset the ledger back to empty and restart ids from 1
+    # (use sparingly — usually prefer creating a new Ledger() per exercise instead)
+    ledger.reset()
+"""
