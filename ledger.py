@@ -1,3 +1,5 @@
+import pandas as pd
+
 class Ledger:
     """A simple helper to record and display journal entries for accounting problems."""
 
@@ -99,6 +101,20 @@ class Ledger:
             if description:
                 indent = "      " if show_id_column else "    "
                 print(f"{indent}({description})")
+
+    def to_table(self):
+        """
+        Return the ledger as a pandas DataFrame, with columns:
+        txn_id, date, account, debit, credit, description.
+        Requires pandas to be installed.
+        """
+
+        if not self.entries:
+            return pd.DataFrame(columns=["txn_id", "date", "account", "debit", "credit", "description"])
+
+        return pd.DataFrame(self.entries)[
+            ["txn_id", "date", "account", "debit", "credit", "description"]
+        ]
 
     def reset(self):
         """Clear all entries and restart the transaction id counter from 1."""
