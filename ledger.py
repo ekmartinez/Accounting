@@ -122,6 +122,109 @@ class Ledger:
         self._next_id = 1
         print("Ledger has been reset.") 
 
+class TrialBalance:
+    """
+    Stores account balances for a trial balance. Can be built manually or
+    imported from a spreadsheet. Corrections are applied by posting entries
+    to a Ledger and then calling apply_ledger() — balances are never edited
+    directly.
+    """
+
+    def __init__(self):
+        # account name -> {"debit": float, "credit": float, "type": str or None}
+        self.accounts = {}
+
+    def add_account(self, account, debit=0, credit=0, account_type=None):
+        """Add a new account (or overwrite an existing one) with a starting balance."""
+        self.accounts[account] = {
+            "debit": debit,
+            "credit": credit,
+            "type": account_type,
+        }
+
+    def remove_account(self, account):
+        """Remove an account entirely (e.g., it shouldn't have existed)."""
+        self.accounts.pop(account, None)
+
+    def apply_ledger(self, ledger, account_types=None):
+        """
+        Add the debit/credit amounts from every line in a Ledger into this
+        trial balance's account totals. Accounts not already on the trial
+        balance are added automatically. 'account_types' is an optional dict
+        for labeling any newly-added accounts (e.g., {"Dividends": "equity"}).
+        """
+        account_types = account_types or {}
+        for entry in ledger.entries:
+            account = entry["account"]
+            if account not in self.accounts:
+                self.add_account(account, account_type=account_types.get(account))
+            self.accounts[account]["debit"] += entry["debit"]
+            self.accounts[account]["credit"] += entry["credit"]
+
+    def totals(self):
+        """Return (total_debit, total_credit)."""
+        total_debit = sum(a["debit"] for a in self.accounts.values())
+        total_credit = sum(a["credit"] for a in self.accounts.values())
+        return round(total_debit, 2), round(total_credit, 2)
+
+    def is_balanced(self):
+        """True if total debits equal total credits."""
+        total_debit, total_credit = self.totals()
+        return total_debit == total_credit
+
+    def reset(self):
+        """Clear all accounts from the trial balance."""
+        self.accounts = {}
+        print("Trial balance has been reset.")
+
+    def to_table(self, include_total=True):
+        """Return the trial balance as a pandas DataFrame."""
+        rows = [
+            {"account": name, "debit": data["debit"], "credit": data["credit"], "type": data["type"]}
+            for name, data in self.accounts.items()
+        ]
+        df = pd.DataFrame(rows, columns=["account", "debit", "credit", "type"])
+
+        if include_total:
+            total_debit, total_credit = self.totals()
+            totals_row = pd.DataFrame([{
+                "account": "TOTAL", "debit": total_debit, "credit": total_credit, "type": "",
+            }])
+            df = pd.concat([df, totals_row], ignore_index=True)
+
+        return df
+
+    @classmethod
+    def from_dataframe(cls, df, account_col="account",
+                        debit_col=None, credit_col=None, amount_col=None,
+                        type_col=None):
+        """
+        Build a TrialBalance from a DataFrame (e.g., pd.read_excel / pd.read_csv).
+        Pass either amount_col (single signed column) OR debit_col/credit_col
+        (two-column layout) — not both.
+        """
+        if amount_col is not None and (debit_col or credit_col):
+            raise ValueError("Provide either amount_col, or debit_col/credit_col — not both.")
+
+        tb = cls()
+        for _, row in df.iterrows():
+            account = row[account_col]
+            acct_type = row[type_col] if type_col else None
+
+            if amount_col is not None:
+                amount = row[amount_col]
+                debit = amount if amount > 0 else 0
+                credit = -amount if amount < 0 else 0
+            else:
+                debit = row[debit_col] if debit_col else 0
+                credit = row[credit_col] if credit_col else 0
+                debit = 0 if pd.isna(debit) else debit
+                credit = 0 if pd.isna(credit) else credit
+
+            tb.add_account(account, debit=debit, credit=credit, account_type=acct_type)
+
+        return tb
+
 """
 Usage:
 
@@ -153,4 +256,53 @@ Usage:
     # Reset the ledger back to empty and restart ids from 1
     # (use sparingly — usually prefer creating a new Ledger() per exercise instead)
     ledger.reset()
+"""
+
+"""
+Trial balance usage:
+
+    # Create an empty trial balance
+    tb = TrialBalance()
+
+    # Add accounts manually, with their stated (possibly incorrect) balances
+    tb.add_account("Cash", debit=4800, account_type="asset")
+    tb.add_account("Accounts Payable", credit=4500, account_type="liability")
+    # 'account_type' is optional — useful later for financial statements,
+    # but not required just to build/balance a trial balance.
+
+    # OR build it from a spreadsheet instead of typing it by hand.
+    # Works with either a single signed amount column...
+    df = pd.read_excel("trial_balance.xlsx")
+    tb = TrialBalance.from_dataframe(df, account_col="Account", amount_col="Amount")
+
+    # ...or a two-column debit/credit layout.
+    tb = TrialBalance.from_dataframe(
+        df, account_col="Account", debit_col="Debit", credit_col="Credit"
+    )
+
+    # Corrections are NOT made by editing tb directly. Post them as real
+    # journal entries in a Ledger, exactly like any other transaction.
+    corrections = Ledger()
+    corrections.add_entry(
+        [
+            {"date": "2025-06-30", "account": "Cash", "debit": 180, "credit": 0},
+            {"date": "2025-06-30", "account": "Accounts Receivable", "debit": 0, "credit": 180},
+        ],
+        description="Correct understated cash collection",
+    )
+    # Repeat add_entry() for each correction needed.
+
+    # Once all corrections are posted, fold the ledger into the trial balance.
+    # Any account mentioned in the ledger that isn't already on tb gets added
+    # automatically (optionally labeled via account_types).
+    tb.apply_ledger(corrections, account_types={"Dividends": "equity"})
+
+    # Check the result
+    tb.is_balanced()     # True/False
+    tb.totals()          # (total_debit, total_credit)
+    tb.to_table()        # pandas DataFrame, with a TOTAL row by default
+    tb.to_table(include_total=False)   # without the TOTAL row
+
+    # Remove an account entirely, if it shouldn't be on the trial balance at all
+    tb.remove_account("Some Wrong Account")
 """
