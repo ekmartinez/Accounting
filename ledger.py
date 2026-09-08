@@ -146,6 +146,30 @@ class TrialBalance:
         """Remove an account entirely (e.g., it shouldn't have existed)."""
         self.accounts.pop(account, None)
 
+    def adjust_account(self, account, debit_change=0, credit_change=0):
+        """
+        Apply an incremental correction to an existing account's balance.
+        Use for clerical errors (e.g., a footing understated by $100) —
+        NOT for correcting a real transaction, which should go through
+        apply_ledger() instead as a proper journal entry.
+        """
+        if account not in self.accounts:
+            raise KeyError(f"Account '{account}' not found. Use add_account() first.")
+        self.accounts[account]["debit"] += debit_change
+        self.accounts[account]["credit"] += credit_change
+
+    def set_account(self, account, debit=0, credit=0):
+        """
+        Overwrite an account's balance directly.
+        Use when you're told the correct final balance outright
+        (e.g., a transposition error's corrected amount).
+        """
+        if account not in self.accounts:
+            raise KeyError(f"Account '{account}' not found. Use add_account() first.")
+        self.accounts[account]["debit"] = debit
+        self.accounts[account]["credit"] = credit
+
+
     def apply_ledger(self, ledger, account_types=None):
         """
         Add the debit/credit amounts from every line in a Ledger into this
