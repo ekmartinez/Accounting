@@ -35,34 +35,6 @@ def format_ledger_table(ledger, currency=True):
 
     return table_with_total
 
-def format_trial_balance_table(tb, currency=True):
-    """
-    Takes a trial balance, returns a formatted DataFrame with a TOTAL row,
-    ready to display with display(HTML(...)).
-    Set currency=False to keep raw numbers (e.g., for further calculations).
-    """
-    table = tb.to_table()
-
-    totals = pd.DataFrame([{
-        "Account": "",
-        "debit": table["debit"].sum(),
-        "credit": table["credit"].sum(),
-        "type": "",
-    }])
-    table_with_total = pd.concat([table, totals], ignore_index=True)
-
-    if currency:
-        table_with_total["debit"] = table_with_total["debit"].apply(
-            lambda x: f"{x:,.2f}" if x != "" and x != 0 else ""
-        )
-        table_with_total["credit"] = table_with_total["credit"].apply(
-            lambda x: f"{x:,.2f}" if x != "" and x != 0 else ""
-        )
-
-    table_with_total.columns = [col.replace("_", " ").title() for col in table_with_total.columns]
-
-    return table_with_total
-
 def format_trial_balance_table(tb, currency=True, include_difference=True):
     """
     Takes a TrialBalance, returns a formatted DataFrame with TOTAL (and
@@ -72,8 +44,8 @@ def format_trial_balance_table(tb, currency=True, include_difference=True):
     table = tb.to_table(include_total=True, include_difference=include_difference)
 
     if currency:
-        table["debit"] = table["debit"].apply(lambda x: f"${x:,.2f}" if x != "" and x != 0 else "")
-        table["credit"] = table["credit"].apply(lambda x: f"${x:,.2f}" if x != "" and x != 0 else "")
+        table["debit"] = table["debit"].apply(lambda x: f"{x:,.2f}" if x != "" and x != 0 else "")
+        table["credit"] = table["credit"].apply(lambda x: f"{x:,.2f}" if x != "" and x != 0 else "")
 
     table.columns = [col.replace("_", " ").title() for col in table.columns]
 
