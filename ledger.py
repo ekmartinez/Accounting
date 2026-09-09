@@ -201,15 +201,27 @@ class TrialBalance:
         self.accounts = {}
         print("Trial balance has been reset.")
 
+    def to_table(self, include_total=True, include_difference=False, net=True):
+        """
+        Return the trial balance as a pandas DataFrame.
+        By default, shows each account's balance netted to one side (the
+        standard "final" trial balance view) — needed once corrections have
+        posted to both sides of an account.
+        Pass net=False to see raw debit/credit totals as stored separately
+        instead — useful mid-problem while auditing footing errors.
+        """
+        rows = []
+        for name, data in self.accounts.items():
+            debit, credit = data["debit"], data["credit"]
+            if net:
+                balance = round(debit - credit, 2)
+                debit, credit = (balance, 0) if balance >= 0 else (0, -balance)
+            rows.append({"account": name, "debit": debit, "credit": credit, "type": data["type"]})
 
-    def to_table(self, include_total=True, include_difference=False):
-        rows = [
-            {"account": name, "debit": data["debit"], "credit": data["credit"], "type": data["type"]}
-            for name, data in self.accounts.items()
-        ]
         df = pd.DataFrame(rows, columns=["account", "debit", "credit", "type"])
 
-        total_debit, total_credit = self.totals()
+        total_debit = round(df["debit"].sum(), 2) if not df.empty else 0
+        total_credit = round(df["credit"].sum(), 2) if not df.empty else 0
 
         if include_total:
             totals_row = pd.DataFrame([{
