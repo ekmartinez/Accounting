@@ -62,3 +62,20 @@ def format_trial_balance_table(tb, currency=True):
     table_with_total.columns = [col.replace("_", " ").title() for col in table_with_total.columns]
 
     return table_with_total
+
+def format_trial_balance_table(tb, currency=True, include_difference=True):
+    """
+    Takes a TrialBalance, returns a formatted DataFrame with TOTAL (and
+    optionally DIFFERENCE) rows, title-case headers, ready to display
+    with display(HTML(...)).
+    """
+    table = tb.to_table(include_total=True, include_difference=include_difference)
+
+    if currency:
+        table["debit"] = table["debit"].apply(lambda x: f"${x:,.2f}" if x != "" and x != 0 else "")
+        table["credit"] = table["credit"].apply(lambda x: f"${x:,.2f}" if x != "" and x != 0 else "")
+
+    table.columns = [col.replace("_", " ").title() for col in table.columns]
+
+    return table
+
