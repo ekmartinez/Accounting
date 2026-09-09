@@ -201,23 +201,32 @@ class TrialBalance:
         self.accounts = {}
         print("Trial balance has been reset.")
 
-    def to_table(self, include_total=True):
-        """Return the trial balance as a pandas DataFrame."""
+
+    def to_table(self, include_total=True, include_difference=False):
         rows = [
             {"account": name, "debit": data["debit"], "credit": data["credit"], "type": data["type"]}
             for name, data in self.accounts.items()
         ]
         df = pd.DataFrame(rows, columns=["account", "debit", "credit", "type"])
 
+        total_debit, total_credit = self.totals()
+
         if include_total:
-            total_debit, total_credit = self.totals()
             totals_row = pd.DataFrame([{
                 "account": "TOTAL", "debit": total_debit, "credit": total_credit, "type": "",
             }])
             df = pd.concat([df, totals_row], ignore_index=True)
 
-        return df
+        if include_difference:
+            difference = round(total_debit - total_credit, 2)
+            diff_row = pd.DataFrame([{
+                "account": "DIFFERENCE", "debit": difference if difference > 0 else 0,
+                "credit": -difference if difference < 0 else 0, "type": "",
+            }])
+            df = pd.concat([df, diff_row], ignore_index=True)
 
+        return df
+    
     @classmethod
     def from_dataframe(cls, df, account_col="account",
                         debit_col=None, credit_col=None, amount_col=None,
