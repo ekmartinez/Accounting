@@ -100,3 +100,18 @@ def asset_amortization(start_date, periods, cost, timing="MS"):
         "Amortized Balance": amortized_balance,
     })
     return df
+
+def format_amortization_table(df, currency=True):
+    """
+    Takes the DataFrame returned by asset_amortization(), returns a display
+    copy: plain dates (no time component) and currency-formatted amounts.
+    Set currency=False to keep raw numbers.
+    """
+    display_df = df.copy()
+    display_df["Date"] = display_df["Date"].dt.date
+
+    if currency:
+        display_df["Amortization"] = display_df["Amortization"].apply(lambda x: f"${x:,.2f}")
+        display_df["Amortized Balance"] = display_df["Amortized Balance"].apply(lambda x: f"${x:,.2f}")
+
+    return display_df
