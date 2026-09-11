@@ -7,8 +7,10 @@ reference for what exists so far. Update it whenever a method is added or change
 ## Files
 
 - `ledger.py` — the `Ledger` and `TrialBalance` classes.
-- `helpers.py` — notebook-level formatting functions and small utilities
-  (`format_ledger_table`, `format_trial_balance_table`, `months_elapsed`).
+- `helpers.py` — a grab-bag file: notebook-level formatting functions for
+  `Ledger`/`TrialBalance` (`format_ledger_table`, `format_trial_balance_table`),
+  plus other standalone utilities not tied to either class
+  (`months_elapsed`, `asset_amortization`).
 
 ## Setup (top of every notebook)
 
@@ -150,6 +152,23 @@ Returns the number of months between two `date` objects (inclusive of the
 starting month) — used for proration in adjusting-entry problems (e.g.,
 prepaid insurance expiring monthly).
 
+### `asset_amortization(start_date, periods, cost, timing="MS")`
+Returns a straight-line amortization schedule as a DataFrame
+(`Date, Amortization, Amortized Balance`). Row 0 is the starting balance at
+`start_date` (Amortization = 0); each of the following `periods` rows
+applies one period's `cost / periods` straight-line amortization, computed
+directly per-row (not by repeated subtraction) to avoid rounding drift.
+`timing`: `"MS"` for month-start dates (default), `"ME"` for month-end.
+
+```python
+df = asset_amortization("2024-06-01", 12, 4800, timing="MS")
+```
+
+> A `format_amortization_table(df, currency=True)` display wrapper (plain
+> dates, currency-formatted amounts) has been discussed but not added to
+> `helpers.py` yet — kept separate for now since it's a different kind of
+> table (a schedule, not a ledger/trial balance).
+
 ---
 
 ## Known gotchas (things that have actually bitten us)
@@ -173,8 +192,13 @@ prepaid insurance expiring monthly).
 
 - A plain-text `print_table()` for `TrialBalance` (parallel to
   `Ledger.print_transaction()`), for quick console viewing without pandas/HTML.
-- Financial statement generation (Income Statement, Balance Sheet, Statement
-  of Owner's Equity) built on top of each account's `type` field. Will
-  likely require: closing entries (temporary vs. permanent accounts), a
-  finer `subtype` (current vs. long-term), and a period/date label on
-  `TrialBalance` for multi-period comparisons.
+
+## Out of scope (decided, not just deferred)
+
+- **Financial statement preparation** (Income Statement, Balance Sheet,
+  Statement of Owner's Equity). This would require closing entries
+  (temporary vs. permanent accounts), current/long-term classification, and
+  multi-period handling — a genuinely separate undertaking, not a small
+  add-on. Decision: once a trial balance is corrected and balanced here,
+  financial statements are prepared in a spreadsheet instead. Add a markdown
+  note + spreadsheet link at the top of any notebook where this comes up.
