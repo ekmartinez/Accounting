@@ -52,35 +52,46 @@ def asset_amortization(start_date, periods, cost, timing="MS"):
     Parameters
     ----------
     start_date : str (YYYY-MM-DD)
-        Date the asset amortization begins. This is also the schedule's
-        first row, showing the un-amortized starting balance.
+        Date the asset was acquired / coverage began. Also the schedule's
+        first row, showing the un-amortized starting balance (no expense
+        recognized yet).
     periods : int
         Useful life of the asset, in months.
     cost : float
         Original cost (or carrying value) of the asset being amortized.
     timing : str, default "MS"
-        Pandas date offset alias for the schedule's cadence.
-        "MS" = month start, "ME" = month end.
+        Pandas date offset alias for how each *subsequent* period's closing
+        date is labeled.
+        "MS" = each period's date is the following month's start.
+        "ME" = each period's date is that period's own month-end — matches
+               problems phrased as a month-end adjusted trial balance, e.g.
+               "as of January 31".
 
     Returns
     -------
     pandas.DataFrame
         Columns: Date, Amortization, Amortized Balance.
-        Row 0 is the starting balance (Amortization = 0); each of the
-        following `periods` rows applies one period's straight-line
-        amortization.
+        Row 0 = start_date, Amortization = 0.
+        Rows 1..periods = one period's straight-line amortization each.
     """
-    # periods + 1 dates: one row for the starting balance, plus one row
-    # per amortization period — matches the two lists below.
-    date_range = pd.date_range(start=start_date, periods=periods + 1, freq=timing)
+    start_ts = pd.Timestamp(start_date)
+
+    # Generate periods+1 candidate dates from start_date at the requested
+    # frequency. If start_date already sits on that frequency's anchor
+    # (e.g. a month-start date with timing="MS"), the first candidate IS
+    # start_date, and these periods+1 dates are exactly what we want.
+    # Otherwise (e.g. timing="ME", where a month-start start_date doesn't
+    # sit on a month-end) the first candidate rolls forward past start_date
+    # — so keep start_date as row 0 and take the next `periods` candidates.
+    candidates = pd.date_range(start=start_date, periods=periods + 1, freq=timing)
+
+    if candidates[0] == start_ts:
+        date_range = candidates
+    else:
+        date_range = pd.DatetimeIndex([start_ts]).append(candidates[:periods])
 
     period_expense = cost / periods
-
-    # Row 0 has no amortization yet; every following row expenses one period's share.
     amortization = [0] + [period_expense] * periods
-
-    # Computed directly from i (rather than repeatedly subtracting in a loop)
-    # to avoid floating-point rounding drift building up over many periods.
     amortized_balance = [cost - period_expense * i for i in range(periods + 1)]
 
     df = pd.DataFrame({
@@ -88,5 +99,4 @@ def asset_amortization(start_date, periods, cost, timing="MS"):
         "Amortization": amortization,
         "Amortized Balance": amortized_balance,
     })
-
     return df

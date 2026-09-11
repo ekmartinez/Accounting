@@ -154,14 +154,27 @@ prepaid insurance expiring monthly).
 
 ### `asset_amortization(start_date, periods, cost, timing="MS")`
 Returns a straight-line amortization schedule as a DataFrame
-(`Date, Amortization, Amortized Balance`). Row 0 is the starting balance at
-`start_date` (Amortization = 0); each of the following `periods` rows
-applies one period's `cost / periods` straight-line amortization, computed
-directly per-row (not by repeated subtraction) to avoid rounding drift.
-`timing`: `"MS"` for month-start dates (default), `"ME"` for month-end.
+(`Date, Amortization, Amortized Balance`). Row 0 is `start_date` itself
+(Amortization = 0, the acquisition date); each of the following `periods`
+rows applies one period's `cost / periods` straight-line amortization,
+computed directly per-row (not by repeated subtraction) to avoid rounding
+drift.
+
+`timing` controls how each period's row is *dated*, independent of
+`start_date`:
+- `"ME"` — that period's own month-end date (e.g. `2025-01-31`). **Use this
+  for adjusted-trial-balance problems** — they're almost always phrased as
+  "as of [month-end date]", so this makes the row you need directly
+  searchable by that date.
+- `"MS"` (default) — the *following* month's start date (e.g. `2025-02-01`
+  for the period ending January). Kept as the default for backward
+  compatibility with earlier notebooks, but for new month-end problems,
+  pass `timing="ME"` explicitly.
 
 ```python
-df = asset_amortization("2024-06-01", 12, 4800, timing="MS")
+# Matches problems phrased as "adjusted trial balance at January 31" —
+# the $2,400 balance row is dated exactly 2025-01-31.
+df = asset_amortization("2024-08-01", 12, 4800, timing="ME")
 ```
 
 > A `format_amortization_table(df, currency=True)` display wrapper (plain
