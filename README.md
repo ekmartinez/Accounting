@@ -7,3 +7,4 @@ Solving Accounting exercises with Python, using Jupyter Notebooks.
 
 ## Table of Contents
 1. [The Accounting Information System](01_The_Accounting_Information_System/)
+1. [Cash And Receivables](02_Cash_And_Receivables/)
